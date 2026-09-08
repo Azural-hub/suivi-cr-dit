@@ -1,4 +1,791 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Suivi des crédits immobiliers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: dark;
+    --bg: #10151c;
+    --panel: #1a212b;
+    --panel-2: #212a36;
+    --text: #e7e4db;
+    --text-soft: #98a1ad;
+    --line: #2a323d;
+    --brass: #c9a06c;
+    --brass-track: #332a1c;
+    --brass-ink: #171207;
+    --danger: #d9776a;
+    --danger-bg: rgba(217,119,106,0.12);
+    --good: #8fae6e;
+    --shadow: 0 1px 0 rgba(0,0,0,0.3);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    background-image:
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: 28px 28px;
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+    padding: 20px 14px 60px;
+  }
+  .wrap{ max-width:640px; margin:0 auto; }
+  header{ margin-bottom:22px; }
+  header h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:26px;
+    letter-spacing:-0.01em;
+    margin:0 0 4px;
+    color:var(--text);
+  }
+  header p{
+    margin:0;
+    font-size:13.5px;
+    color:var(--text-soft);
+    line-height:1.5;
+  }
+
+  .banner{
+    display:none;
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:4px;
+    background:var(--danger-bg);
+    border:1px solid var(--danger);
+    color:var(--danger);
+    font-size:13px;
+    line-height:1.5;
+  }
+
+  .backup-row{
+    display:flex; gap:14px; margin-top:14px;
+  }
+  .backup-btn{
+    background:none; border:none; padding:0;
+    color:var(--text-soft);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    text-decoration:underline;
+    text-underline-offset:2px;
+    cursor:pointer;
+  }
+  .backup-btn:hover{ color:var(--brass); }
+
+  /* --- Vue d'ensemble (home) --- */
+  .overview-panel{
+    display:none;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:16px;
+    margin-top:16px;
+    box-shadow: var(--shadow);
+  }
+  .overview-title{
+    font-family:'Fraunces', serif;
+    font-size:16px;
+    font-weight:500;
+    color:var(--text);
+    margin:0 0 14px;
+  }
+  .overview-totals{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding-bottom:14px; margin-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .overview-totals-label{
+    font-size:13px; color:var(--text-soft);
+  }
+  .overview-totals-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:22px; font-weight:600; color:var(--brass);
+  }
+  .overview-totals-sub{
+    font-size:11px; color:var(--text-soft);
+    margin-top:2px;
+  }
+  .overview-row + .overview-row{ margin-top:16px; }
+  .overview-top{
+    display:flex; justify-content:space-between; align-items:baseline;
+    gap:10px; margin-bottom:6px;
+  }
+  .overview-name{
+    font-size:14px; font-weight:500; color:var(--text);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .overview-pct{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px; color:var(--brass); flex-shrink:0;
+  }
+  .overview-bar{
+    position:relative;
+    height:13px;
+    border-radius:999px;
+    background:var(--line);
+    overflow:hidden;
+  }
+  .overview-fill{
+    height:100%;
+    background:var(--brass);
+    border-radius:999px;
+    transition: width 0.2s ease;
+  }
+  .overview-caption{
+    display:flex; justify-content:space-between;
+    margin-top:5px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; color:var(--text-soft);
+  }
+
+  .add-btn{
+    width:100%;
+    margin-top:16px;
+    background:var(--brass);
+    color:var(--brass-ink);
+    border:none;
+    padding:13px 16px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    letter-spacing:0.02em;
+    border-radius:3px;
+    cursor:pointer;
+  }
+  .add-btn:active{ opacity:0.85; }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:16px;
+    margin-top:14px;
+    box-shadow: var(--shadow);
+  }
+
+  .field{ margin-bottom:12px; }
+  .field label{
+    display:block;
+    font-size:11.5px;
+    color:var(--text-soft);
+    margin-bottom:5px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .field input{
+    width:100%;
+    padding:10px 11px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    font-size:15px;
+    font-family:'IBM Plex Sans', sans-serif;
+    background:var(--panel-2);
+    color:var(--text);
+  }
+  .field input:focus{ outline:2px solid var(--brass); outline-offset:0; }
+
+  .row-btns{ display:flex; gap:8px; margin-top:14px; }
+  .btn{
+    flex:1;
+    padding:10px;
+    border-radius:3px;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    cursor:pointer;
+    color:var(--text);
+  }
+  .btn.primary{
+    background:var(--brass);
+    color:var(--brass-ink);
+    border-color:var(--brass);
+  }
+
+  .credit-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    margin-top:16px;
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  .credit-head{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:18px 16px;
+  }
+  .gauge-wrap{ position:relative; width:76px; height:76px; flex-shrink:0; }
+  .gauge-wrap svg{ transform:rotate(-90deg); }
+  .gauge-pct{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    font-weight:600;
+    color:var(--text);
+  }
+  .credit-info{ flex:1; min-width:0; }
+  .credit-name{
+    font-family:'Fraunces', serif;
+    font-size:17px;
+    font-weight:500;
+    margin:0 0 4px;
+    color:var(--text);
+  }
+  .credit-amounts{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--text-soft);
+    line-height:1.5;
+  }
+  .credit-amounts b{ color:var(--text); }
+  .credit-deadline{ margin-top:2px; }
+
+  .head-actions{ display:flex; align-items:center; gap:2px; flex-shrink:0; }
+  .quick-add-btn{
+    background:var(--brass); border:none; color:var(--brass-ink);
+    width:30px; height:30px; border-radius:999px;
+    font-size:18px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .toggle{
+    background:none; border:none; color:var(--text-soft);
+    font-size:18px; cursor:pointer; padding:4px 8px;
+    flex-shrink:0;
+  }
+  .quick-repay-form{
+    display:none;
+    padding:14px 16px;
+    border-top:1px solid var(--line);
+    gap:8px;
+  }
+  .quick-repay-form.open{ display:flex; }
+  .quick-repay-form input{
+    padding:9px 10px; border:1px solid var(--line); border-radius:3px;
+    font-size:14px; background:var(--panel-2); color:var(--text);
+  }
+  .quick-repay-form input[type=number]{ flex:1; min-width:0; }
+  .quick-repay-form input[type=date]{ flex:1.1; min-width:0; }
+  .quick-repay-form input[type=date]::-webkit-calendar-picker-indicator{ filter: invert(0.8); }
+  .quick-repay-form button{
+    background:var(--brass); border:none; color:var(--brass-ink);
+    padding:0 14px; border-radius:3px; font-size:13px; cursor:pointer;
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  .credit-body{
+    border-top:1px solid var(--line);
+    padding:14px 16px 16px;
+    display:none;
+  }
+  .credit-body.open{ display:block; }
+
+  .history-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--text-soft);
+    margin: 4px 0 8px;
+  }
+  .history-item{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .history-item:last-child{ border-bottom:none; }
+  .history-date{ color:var(--text-soft); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .history-amount{ font-weight:600; color:var(--text); }
+  .history-del{
+    background:none; border:none; color:var(--danger);
+    font-size:12px; cursor:pointer; padding:2px 6px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .empty-hist{ color:var(--text-soft); font-size:13px; padding:6px 0 12px; }
+
+  .repay-form{
+    display:flex; gap:8px; margin-top:10px;
+    padding-top:12px; border-top:1px solid var(--line);
+  }
+  .repay-form input{
+    padding:9px 10px; border:1px solid var(--line); border-radius:3px;
+    font-size:14px; background:var(--panel-2); color:var(--text);
+  }
+  .repay-form input[type=number]{ flex:1; min-width:0; }
+  .repay-form input[type=date]{ flex:1.1; min-width:0; }
+  .repay-form input[type=date]::-webkit-calendar-picker-indicator{ filter: invert(0.8); }
+  .repay-form button{
+    background:var(--brass); border:none; color:var(--brass-ink);
+    padding:0 14px; border-radius:3px; font-size:13px; cursor:pointer;
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  .footer-actions{ display:flex; justify-content:space-between; align-items:center; }
+  .delete-credit{
+    display:inline-block; margin-top:14px;
+    background:none; border:none; color:var(--danger);
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px;
+    cursor:pointer; padding:4px 0;
+  }
+  .edit-credit{
+    display:inline-block; margin-top:14px; margin-right:16px;
+    background:none; border:none; color:var(--text-soft);
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px;
+    cursor:pointer; padding:4px 0;
+  }
+  .edit-form{
+    padding-top:12px; margin-top:4px; border-top:1px solid var(--line);
+  }
+  .edit-form .field{ margin-bottom:10px; }
+  .edit-form .field label{
+    display:block; font-size:11px; color:var(--text-soft);
+    margin-bottom:4px; font-family:'IBM Plex Mono', monospace;
+  }
+  .edit-form .field input{
+    width:100%; padding:9px 10px; border:1px solid var(--line);
+    border-radius:3px; font-size:14px; background:var(--panel-2); color:var(--text);
+  }
+
+  .empty-state{
+    text-align:center; padding:50px 20px;
+    color:var(--text-soft);
+  }
+  .empty-state p{ font-size:14px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Suivi des crédits immobiliers</h1>
+    <p>Ajoutez vos crédits et enregistrez chaque remboursement, à la date de votre choix, passée ou présente.</p>
+  </header>
+
+  <div class="banner" id="statusBanner"></div>
+
+  <div class="backup-row">
+    <button class="backup-btn" id="exportBtn">Exporter une sauvegarde</button>
+    <button class="backup-btn" id="importBtn">Importer une sauvegarde</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none;">
+  </div>
+
+  <div class="overview-panel" id="overviewPanel">
+    <p class="overview-title">Vue d'ensemble</p>
+    <div id="overviewList"></div>
+  </div>
+
+  <button class="add-btn" id="showFormBtn">+ Ajouter un crédit</button>
+
+  <div class="panel" id="addPanel" style="display:none;">
+    <div class="field">
+      <label>Nom du crédit</label>
+      <input type="text" id="newName" placeholder="Résidence principale">
+    </div>
+    <div class="field">
+      <label>Montant emprunté (€)</label>
+      <input type="number" id="newAmount" placeholder="180000" min="0" step="0.01">
+    </div>
+    <div class="field">
+      <label>Date limite de remboursement (optionnel)</label>
+      <input type="date" id="newDeadline">
+    </div>
+    <div class="row-btns">
+      <button class="btn" id="cancelAdd">Annuler</button>
+      <button class="btn primary" id="confirmAdd">Ajouter</button>
+    </div>
+  </div>
+
+  <div id="creditsList"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <p>Aucun crédit enregistré pour l'instant.<br>Ajoutez votre premier crédit ci-dessus.</p>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'suivi-credits-data-v1';
+let credits = [];
+let storageMode = 'local'; // 'local' ou 'memory' (repli si localStorage est bloqué)
+
+function showBanner(msg){
+  const b = document.getElementById('statusBanner');
+  b.textContent = msg;
+  b.style.display = 'block';
+}
+function hideBanner(){
+  document.getElementById('statusBanner').style.display = 'none';
+}
+
+function loadCredits(){
+  try{
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    credits = raw ? JSON.parse(raw) : [];
+  }catch(e){
+    storageMode = 'memory';
+    credits = [];
+    showBanner("Le stockage local du navigateur n'est pas accessible dans cet aperçu : tes données resteront visibles pendant cette session mais seront perdues si tu fermes la page. Pense à cliquer sur \u00ab Exporter une sauvegarde \u00bb régulièrement, ou télécharge ce fichier et ouvre-le directement dans ton navigateur pour une sauvegarde fiable.");
+  }
+  render();
+}
+
+function saveCredits(){
+  if(storageMode !== 'local') return;
+  try{
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(credits));
+    hideBanner();
+  }catch(e){
+    storageMode = 'memory';
+    showBanner("Impossible d'écrire dans le stockage local : " + (e && e.message ? e.message : 'erreur inconnue') + ". Utilise \u00ab Exporter une sauvegarde \u00bb pour ne rien perdre.");
+  }
+}
+
+function exportBackup(){
+  const blob = new Blob([JSON.stringify(credits, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const stamp = new Date().toISOString().slice(0,10);
+  a.download = 'suivi-credits-sauvegarde-' + stamp + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importBackup(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(!Array.isArray(data)) throw new Error('Format de fichier invalide.');
+      credits = data;
+      saveCredits();
+      render();
+      hideBanner();
+    }catch(e){
+      showBanner("Import impossible : " + (e && e.message ? e.message : 'fichier invalide') + ".");
+    }
+  };
+  reader.onerror = () => showBanner("Impossible de lire ce fichier.");
+  reader.readAsText(file);
+}
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+function fmtEUR(n){
+  return n.toLocaleString('fr-FR', {minimumFractionDigits:0, maximumFractionDigits:2}) + ' €';
+}
+function fmtDate(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+}
+
+function totalRepaid(credit){
+  return credit.remboursements.reduce((s,r)=>s+r.montant,0);
+}
+
+function gaugeSVG(pctRaw){
+  const pct = Math.min(100, pctRaw);
+  const r = 32, c = 2*Math.PI*r;
+  const offset = c - (pct/100)*c;
+  const color = pctRaw >= 100 ? 'var(--good)' : 'var(--brass)';
+  return `<svg width="76" height="76" viewBox="0 0 76 76">
+    <circle cx="38" cy="38" r="${r}" fill="none" stroke="var(--brass-track)" stroke-width="7"/>
+    <circle cx="38" cy="38" r="${r}" fill="none" stroke="${color}" stroke-width="7"
+      stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderOverview(){
+  const panel = document.getElementById('overviewPanel');
+  const list = document.getElementById('overviewList');
+  if(credits.length === 0){
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+
+  const totalEmprunte = credits.reduce((s,c)=> s + c.montant, 0);
+  const totalRestant = credits.reduce((s,c)=> {
+    const remaining = c.montant - totalRepaid(c);
+    return s + Math.max(0, remaining);
+  }, 0);
+
+  const totalsHTML = `
+    <div class="overview-totals">
+      <div>
+        <div class="overview-totals-label">Dette totale restante</div>
+        <div class="overview-totals-sub">sur ${fmtEUR(totalEmprunte)} emprunté au total</div>
+      </div>
+      <div class="overview-totals-value">${fmtEUR(totalRestant)}</div>
+    </div>
+  `;
+
+  list.innerHTML = totalsHTML + credits.map(credit => {
+    const repaid = totalRepaid(credit);
+    const pctRaw = credit.montant > 0 ? (repaid/credit.montant)*100 : 0;
+    const pctRepaid = Math.min(100, Math.round(pctRaw));
+    const pctRemaining = Math.max(0, 100 - pctRepaid);
+    return `
+      <div class="overview-row">
+        <div class="overview-top">
+          <span class="overview-name">${credit.name}</span>
+          <span class="overview-pct">${pctRepaid}%</span>
+        </div>
+        <div class="overview-bar">
+          <div class="overview-fill" style="width:${Math.min(100,pctRaw)}%"></div>
+        </div>
+        <div class="overview-caption">
+          <span>${pctRepaid}% remboursé</span>
+          <span>${pctRemaining}% restant</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function render(){
+  renderOverview();
+
+  const list = document.getElementById('creditsList');
+  const empty = document.getElementById('emptyState');
+  if(credits.length === 0){
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  list.innerHTML = credits.map(credit => {
+    const repaid = totalRepaid(credit);
+    const pctRaw = credit.montant > 0 ? (repaid/credit.montant)*100 : 0;
+    const pctDisplay = Math.round(pctRaw);
+    const remaining = credit.montant - repaid;
+
+    const sorted = [...credit.remboursements].sort((a,b)=> b.date.localeCompare(a.date));
+    const historyHTML = sorted.length ? sorted.map(r => `
+      <div class="history-item">
+        <div>
+          <div class="history-amount">${fmtEUR(r.montant)}</div>
+          <div class="history-date">${fmtDate(r.date)}</div>
+        </div>
+        <button class="history-del" data-credit="${credit.id}" data-repay="${r.id}">Supprimer</button>
+      </div>
+    `).join('') : '<div class="empty-hist">Aucun remboursement enregistré.</div>';
+
+    return `
+      <div class="credit-card" data-id="${credit.id}">
+        <div class="credit-head">
+          <div class="gauge-wrap">
+            ${gaugeSVG(pctRaw)}
+            <div class="gauge-pct">${pctDisplay}%</div>
+          </div>
+          <div class="credit-info">
+            <p class="credit-name">${credit.name}</p>
+            <div class="credit-amounts">
+              <b>${fmtEUR(repaid)}</b> remboursés sur ${fmtEUR(credit.montant)}<br>
+              Reste dû : ${fmtEUR(Math.max(0,remaining))}
+              ${credit.dateLimite ? `<div class="credit-deadline">Échéance : ${fmtDate(credit.dateLimite)}</div>` : ''}
+            </div>
+          </div>
+          <div class="head-actions">
+            <button class="quick-add-btn" data-quickadd="${credit.id}" aria-label="Ajouter un remboursement">+</button>
+            <button class="toggle" data-toggle="${credit.id}">⌄</button>
+          </div>
+        </div>
+        <div class="quick-repay-form" id="quick-${credit.id}">
+          <input type="number" placeholder="Montant €" min="0" step="0.01" id="qamt-${credit.id}">
+          <input type="date" id="qdate-${credit.id}" value="${new Date().toISOString().slice(0,10)}">
+          <button data-quicksubmit="${credit.id}">Ajouter</button>
+        </div>
+        <div class="credit-body" id="body-${credit.id}">
+          <div class="history-title">Historique des remboursements</div>
+          ${historyHTML}
+          <div class="repay-form">
+            <input type="number" placeholder="Montant €" min="0" step="0.01" id="ramt-${credit.id}">
+            <input type="date" id="rdate-${credit.id}" value="${new Date().toISOString().slice(0,10)}">
+            <button data-addrepay="${credit.id}">Ajouter</button>
+          </div>
+          <div class="footer-actions">
+            <button class="edit-credit" data-editcredit="${credit.id}">Modifier ce crédit</button>
+            <button class="delete-credit" data-delcredit="${credit.id}">Supprimer ce crédit</button>
+          </div>
+          <div class="edit-form" id="edit-${credit.id}" style="display:none;">
+            <div class="field">
+              <label>Nom du crédit</label>
+              <input type="text" id="editname-${credit.id}" value="${credit.name}">
+            </div>
+            <div class="field">
+              <label>Montant emprunté (€)</label>
+              <input type="number" id="editamount-${credit.id}" value="${credit.montant}" min="0" step="0.01">
+            </div>
+            <div class="field">
+              <label>Date limite de remboursement (optionnel)</label>
+              <input type="date" id="editdeadline-${credit.id}" value="${credit.dateLimite || ''}">
+            </div>
+            <div class="row-btns">
+              <button class="btn" data-canceledit="${credit.id}">Annuler</button>
+              <button class="btn primary" data-saveedit="${credit.id}">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  attachCardListeners();
+}
+
+function attachCardListeners(){
+  document.querySelectorAll('[data-toggle]').forEach(btn=>{
+    btn.onclick = () => {
+      const id = btn.getAttribute('data-toggle');
+      const body = document.getElementById('body-'+id);
+      body.classList.toggle('open');
+      btn.textContent = body.classList.contains('open') ? '︿' : '⌄';
+    };
+  });
+
+  document.querySelectorAll('[data-quickadd]').forEach(btn=>{
+    btn.onclick = () => {
+      const id = btn.getAttribute('data-quickadd');
+      document.getElementById('quick-'+id).classList.toggle('open');
+    };
+  });
+
+  document.querySelectorAll('[data-quicksubmit]').forEach(btn=>{
+    btn.onclick = async () => {
+      const id = btn.getAttribute('data-quicksubmit');
+      const amt = parseFloat(document.getElementById('qamt-'+id).value);
+      const date = document.getElementById('qdate-'+id).value;
+      if(!amt || amt <= 0 || !date) return;
+      const credit = credits.find(c=>c.id===id);
+      credit.remboursements.push({id: uid(), montant: amt, date});
+      saveCredits();
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-addrepay]').forEach(btn=>{
+    btn.onclick = async () => {
+      const id = btn.getAttribute('data-addrepay');
+      const amtInput = document.getElementById('ramt-'+id);
+      const dateInput = document.getElementById('rdate-'+id);
+      const amt = parseFloat(amtInput.value);
+      const date = dateInput.value;
+      if(!amt || amt <= 0 || !date) return;
+      const credit = credits.find(c=>c.id===id);
+      credit.remboursements.push({id: uid(), montant: amt, date});
+      await saveCredits();
+      render();
+      document.getElementById('body-'+id).classList.add('open');
+      const t = document.querySelector('[data-toggle="'+id+'"]');
+      if(t) t.textContent = '︿';
+    };
+  });
+
+  document.querySelectorAll('[data-repay]').forEach(btn=>{
+    btn.onclick = async () => {
+      const cid = btn.getAttribute('data-credit');
+      const rid = btn.getAttribute('data-repay');
+      const credit = credits.find(c=>c.id===cid);
+      credit.remboursements = credit.remboursements.filter(r=>r.id!==rid);
+      await saveCredits();
+      render();
+      document.getElementById('body-'+cid).classList.add('open');
+      const t = document.querySelector('[data-toggle="'+cid+'"]');
+      if(t) t.textContent = '︿';
+    };
+  });
+
+  document.querySelectorAll('[data-editcredit]').forEach(btn=>{
+    btn.onclick = () => {
+      const id = btn.getAttribute('data-editcredit');
+      const form = document.getElementById('edit-'+id);
+      form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    };
+  });
+
+  document.querySelectorAll('[data-canceledit]').forEach(btn=>{
+    btn.onclick = () => {
+      const id = btn.getAttribute('data-canceledit');
+      document.getElementById('edit-'+id).style.display = 'none';
+    };
+  });
+
+  document.querySelectorAll('[data-saveedit]').forEach(btn=>{
+    btn.onclick = async () => {
+      const id = btn.getAttribute('data-saveedit');
+      const name = document.getElementById('editname-'+id).value.trim();
+      const amount = parseFloat(document.getElementById('editamount-'+id).value);
+      const deadline = document.getElementById('editdeadline-'+id).value || null;
+      if(!name || !amount || amount <= 0) return;
+      const credit = credits.find(c=>c.id===id);
+      credit.name = name;
+      credit.montant = amount;
+      credit.dateLimite = deadline;
+      await saveCredits();
+      render();
+      document.getElementById('body-'+id).classList.add('open');
+      const t = document.querySelector('[data-toggle="'+id+'"]');
+      if(t) t.textContent = '︿';
+    };
+  });
+
+  document.querySelectorAll('[data-delcredit]').forEach(btn=>{
+    btn.onclick = async () => {
+      const id = btn.getAttribute('data-delcredit');
+      if(!confirm('Supprimer définitivement ce crédit et son historique ?')) return;
+      credits = credits.filter(c=>c.id!==id);
+      await saveCredits();
+      render();
+    };
+  });
+}
+
+document.getElementById('showFormBtn').onclick = () => {
+  document.getElementById('addPanel').style.display = 'block';
+  document.getElementById('showFormBtn').style.display = 'none';
+};
+document.getElementById('cancelAdd').onclick = () => {
+  document.getElementById('addPanel').style.display = 'none';
+  document.getElementById('showFormBtn').style.display = 'block';
+  document.getElementById('newName').value = '';
+  document.getElementById('newAmount').value = '';
+};
+document.getElementById('confirmAdd').onclick = async () => {
+  const name = document.getElementById('newName').value.trim();
+  const amount = parseFloat(document.getElementById('newAmount').value);
+  const deadline = document.getElementById('newDeadline').value || null;
+  if(!name || !amount || amount <= 0) return;
+  credits.push({ id: uid(), name, montant: amount, dateLimite: deadline, remboursements: [] });
+  await saveCredits();
+  document.getElementById('newName').value = '';
+  document.getElementById('newAmount').value = '';
+  document.getElementById('newDeadline').value = '';
+  document.getElementById('addPanel').style.display = 'none';
+  document.getElementById('showFormBtn').style.display = 'block';
+  render();
+};
+
+document.getElementById('exportBtn').onclick = exportBackup;
+document.getElementById('importBtn').onclick = () => document.getElementById('importFile').click();
+document.getElementById('importFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if(file) importBackup(file);
+  e.target.value = '';
+};
+
+loadCredits();
+</script>
+</body>
+</html>
+!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
