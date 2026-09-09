@@ -309,6 +309,13 @@
     font-family:'IBM Plex Mono', monospace;
   }
   .empty-hist{ color:var(--text-soft); font-size:13px; padding:6px 0 12px; }
+  .history-more{
+    display:block; width:100%; margin-top:10px;
+    background:var(--panel-2); border:1px solid var(--line);
+    color:var(--text-soft); border-radius:3px; padding:8px;
+    font-family:'IBM Plex Mono', monospace; font-size:12px; cursor:pointer;
+  }
+  .history-more:hover{ color:var(--brass); }
 
   .repay-form{
     display:flex; gap:8px; margin-top:10px;
@@ -410,7 +417,9 @@
 <script>
 const STORAGE_KEY = 'suivi-credits-data-v1';
 let credits = [];
-let storageMode = 'local'; // 'local' ou 'memory' (repli si localStorage est bloqué)
+let storageMode = 'local';
+let historyVisible = {}; // { creditId: nombre d'entrées d'historique affichées }
+const HISTORY_PAGE = 3; // 'local' ou 'memory' (repli si localStorage est bloqué)
 
 function showBanner(msg){
   const b = document.getElementById('statusBanner');
@@ -568,7 +577,10 @@ function render(){
     const remaining = credit.montant - repaid;
 
     const sorted = [...credit.remboursements].sort((a,b)=> b.date.localeCompare(a.date));
-    const historyHTML = sorted.length ? sorted.map(r => `
+    const visibleCount = historyVisible[credit.id] || HISTORY_PAGE;
+    const visibleEntries = sorted.slice(0, visibleCount);
+    const remainingCount = sorted.length - visibleEntries.length;
+    const historyHTML = sorted.length ? visibleEntries.map(r => `
       <div class="history-item">
         <div>
           <div class="history-amount">${fmtEUR(r.montant)}</div>
@@ -576,7 +588,7 @@ function render(){
         </div>
         <button class="history-del" data-credit="${credit.id}" data-repay="${r.id}">Supprimer</button>
       </div>
-    `).join('') : '<div class="empty-hist">Aucun remboursement enregistré.</div>';
+    `).join('') + (remainingCount > 0 ? `<button class="history-more" data-showmore="${credit.id}">Voir plus (${remainingCount} restant${remainingCount>1?'s':''})</button>` : '') : '<div class="empty-hist">Aucun remboursement enregistré.</div>';
 
     return `
       <div class="credit-card" data-id="${credit.id}">
@@ -699,6 +711,18 @@ function attachCardListeners(){
       render();
       document.getElementById('body-'+cid).classList.add('open');
       const t = document.querySelector('[data-toggle="'+cid+'"]');
+      if(t) t.textContent = '︿';
+    };
+  });
+
+  document.querySelectorAll('[data-showmore]').forEach(btn=>{
+    btn.onclick = () => {
+      const id = btn.getAttribute('data-showmore');
+      const credit = credits.find(c=>c.id===id);
+      historyVisible[id] = (historyVisible[id] || HISTORY_PAGE) + HISTORY_PAGE;
+      render();
+      document.getElementById('body-'+id).classList.add('open');
+      const t = document.querySelector('[data-toggle="'+id+'"]');
       if(t) t.textContent = '︿';
     };
   });
