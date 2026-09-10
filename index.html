@@ -54,6 +54,20 @@
     line-height:1.5;
   }
 
+  .tabs{
+    display:flex; gap:8px;
+  }
+  .tab-btn{
+    flex:1; padding:10px; text-align:center;
+    background:var(--panel-2); border:1px solid var(--line);
+    border-radius:3px; color:var(--text-soft);
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+    cursor:pointer;
+  }
+  .tab-btn.active{
+    background:var(--brass); color:var(--brass-ink); border-color:var(--brass);
+  }
+
   .banner{
     display:none;
     margin-top:14px;
@@ -189,6 +203,19 @@
     color:var(--text);
   }
   .field input:focus{ outline:2px solid var(--brass); outline-offset:0; }
+  .field select{
+    width:100%;
+    padding:10px 11px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    font-size:15px;
+    font-family:'IBM Plex Sans', sans-serif;
+    background:var(--panel-2);
+    color:var(--text);
+  }
+  .field select:focus{ outline:2px solid var(--brass); outline-offset:0; }
+  .field-row{ display:flex; gap:8px; }
+  .field-row .field{ flex:1; margin-bottom:0; }
 
   .row-btns{ display:flex; gap:8px; margin-top:14px; }
   .btn{
@@ -355,9 +382,10 @@
     display:block; font-size:11px; color:var(--text-soft);
     margin-bottom:4px; font-family:'IBM Plex Mono', monospace;
   }
-  .edit-form .field input{
+  .edit-form .field input, .edit-form .field select{
     width:100%; padding:9px 10px; border:1px solid var(--line);
     border-radius:3px; font-size:14px; background:var(--panel-2); color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
   }
 
   .empty-state{
@@ -365,6 +393,47 @@
     color:var(--text-soft);
   }
   .empty-state p{ font-size:14px; line-height:1.6; }
+
+  /* --- Patrimoine --- */
+  .patrimoine-total{ text-align:center; padding:6px 0 18px; }
+  .patrimoine-total-label{ font-size:13px; color:var(--text-soft); margin-bottom:6px; }
+  .patrimoine-total-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:30px; font-weight:600; color:var(--brass);
+  }
+  .patrimoine-breakdown{ border-top:1px solid var(--line); padding-top:14px; }
+  .breakdown-row{
+    display:flex; justify-content:space-between;
+    font-size:13px; padding:5px 0; color:var(--text-soft);
+  }
+  .breakdown-row b{ color:var(--text); font-family:'IBM Plex Mono', monospace; }
+  .evolution-note{ font-size:11px; color:var(--text-soft); margin-top:10px; line-height:1.5; }
+
+  .asset-credit-row{ padding:12px 0; border-bottom:1px solid var(--line); }
+  .asset-credit-row:last-child{ border-bottom:none; }
+  .asset-credit-top{ display:flex; justify-content:space-between; font-size:14px; margin-bottom:4px; }
+  .asset-credit-name{ font-weight:500; color:var(--text); }
+  .asset-credit-net{ font-family:'IBM Plex Mono', monospace; color:var(--brass); font-weight:600; }
+  .asset-credit-sub{ font-size:11.5px; color:var(--text-soft); font-family:'IBM Plex Mono', monospace; }
+
+  .asset-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 0; border-bottom:1px solid var(--line);
+  }
+  .asset-row:last-child{ border-bottom:none; }
+  .asset-name{ font-size:14px; color:var(--text); }
+  .asset-value{ font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--text); margin-right:10px; }
+  .asset-del{
+    background:none; border:none; color:var(--danger);
+    font-size:12px; cursor:pointer;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .evolution-caption{
+    display:flex; justify-content:space-between;
+    margin-top:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; color:var(--text-soft);
+  }
 </style>
 </head>
 <body>
@@ -373,6 +442,13 @@
     <h1>Suivi des crédits immobiliers</h1>
     <p>Ajoutez vos crédits et enregistrez chaque remboursement, à la date de votre choix, passée ou présente.</p>
   </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-page="credits">Crédits</button>
+    <button class="tab-btn" data-page="patrimoine">Patrimoine</button>
+  </div>
+
+  <div id="pageCredits">
 
   <div class="banner" id="statusBanner"></div>
 
@@ -399,6 +475,40 @@
       <input type="number" id="newAmount" placeholder="180000" min="0" step="0.01">
     </div>
     <div class="field">
+      <label>Mode de calcul</label>
+      <select id="newCalcMode">
+        <option value="simple">Simple (capital uniquement)</option>
+        <option value="amortissement">Avec intérêts (taux + mensualités)</option>
+      </select>
+    </div>
+    <div class="field" id="newTauxWrap" style="display:none;">
+      <label>Taux d'intérêt annuel (%)</label>
+      <input type="number" id="newTaux" placeholder="3.5" min="0" step="0.01">
+    </div>
+    <div class="field" id="newDateDebutWrap" style="display:none;">
+      <label>Date de départ du prêt</label>
+      <input type="date" id="newDateDebut">
+    </div>
+    <div class="field" id="newInsuranceWrap" style="display:none;">
+      <label>Assurance mensuelle (€) (optionnel)</label>
+      <input type="number" id="newInsurance" placeholder="9.89" min="0" step="0.01">
+    </div>
+    <div class="field" id="newRefWrap" style="display:none;">
+      <label>Recalage : capital restant dû connu (optionnel)</label>
+      <div class="field-row">
+        <div class="field">
+          <input type="date" id="newRefDate">
+        </div>
+        <div class="field">
+          <input type="number" id="newRefMontant" placeholder="Montant €" min="0" step="0.01">
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Valeur estimée du bien (€) (optionnel)</label>
+      <input type="number" id="newValeurEstimee" placeholder="220000" min="0" step="0.01">
+    </div>
+    <div class="field">
       <label>Date limite de remboursement (optionnel)</label>
       <input type="date" id="newDeadline">
     </div>
@@ -412,14 +522,59 @@
   <div class="empty-state" id="emptyState" style="display:none;">
     <p>Aucun crédit enregistré pour l'instant.<br>Ajoutez votre premier crédit ci-dessus.</p>
   </div>
+
+  </div>
+
+  <div id="pagePatrimoine" style="display:none;">
+
+    <div class="panel">
+      <div class="patrimoine-total">
+        <div class="patrimoine-total-label">Valeur nette totale</div>
+        <div class="patrimoine-total-value" id="patrimoineTotalValue">—</div>
+      </div>
+      <div class="patrimoine-breakdown" id="patrimoineBreakdown"></div>
+    </div>
+
+    <div class="panel">
+      <p class="overview-title">Détail par bien</p>
+      <div id="patrimoineCreditsList"></div>
+    </div>
+
+    <div class="panel">
+      <p class="overview-title">Autres actifs</p>
+      <div id="assetsList"></div>
+      <button class="add-btn" id="showAssetFormBtn">+ Ajouter un actif</button>
+      <div class="edit-form" id="assetAddPanel" style="display:none;">
+        <div class="field">
+          <label>Nom de l'actif</label>
+          <input type="text" id="newAssetName" placeholder="Livret A, Assurance-vie...">
+        </div>
+        <div class="field">
+          <label>Valeur (€)</label>
+          <input type="number" id="newAssetValue" min="0" step="0.01">
+        </div>
+        <div class="row-btns">
+          <button class="btn" id="cancelAsset">Annuler</button>
+          <button class="btn primary" id="confirmAsset">Ajouter</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="overview-title">Évolution du patrimoine net</p>
+      <div id="evolutionChart"></div>
+    </div>
+
+  </div>
 </div>
 
 <script>
 const STORAGE_KEY = 'suivi-credits-data-v1';
 let credits = [];
-let storageMode = 'local';
+let assets = [];
+let storageMode = 'local'; // 'local' ou 'memory' (repli si localStorage est bloqué)
 let historyVisible = {}; // { creditId: nombre d'entrées d'historique affichées }
-const HISTORY_PAGE = 3; // 'local' ou 'memory' (repli si localStorage est bloqué)
+const HISTORY_PAGE = 3;
 
 function showBanner(msg){
   const b = document.getElementById('statusBanner');
@@ -433,10 +588,21 @@ function hideBanner(){
 function loadCredits(){
   try{
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    credits = raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : null;
+    if(Array.isArray(parsed)){
+      credits = parsed;
+      assets = [];
+    }else if(parsed){
+      credits = parsed.credits || [];
+      assets = parsed.assets || [];
+    }else{
+      credits = [];
+      assets = [];
+    }
   }catch(e){
     storageMode = 'memory';
     credits = [];
+    assets = [];
     showBanner("Le stockage local du navigateur n'est pas accessible dans cet aperçu : tes données resteront visibles pendant cette session mais seront perdues si tu fermes la page. Pense à cliquer sur \u00ab Exporter une sauvegarde \u00bb régulièrement, ou télécharge ce fichier et ouvre-le directement dans ton navigateur pour une sauvegarde fiable.");
   }
   render();
@@ -445,7 +611,7 @@ function loadCredits(){
 function saveCredits(){
   if(storageMode !== 'local') return;
   try{
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(credits));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({credits, assets}));
     hideBanner();
   }catch(e){
     storageMode = 'memory';
@@ -454,7 +620,7 @@ function saveCredits(){
 }
 
 function exportBackup(){
-  const blob = new Blob([JSON.stringify(credits, null, 2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify({credits, assets}, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -471,8 +637,15 @@ function importBackup(file){
   reader.onload = () => {
     try{
       const data = JSON.parse(reader.result);
-      if(!Array.isArray(data)) throw new Error('Format de fichier invalide.');
-      credits = data;
+      if(Array.isArray(data)){
+        credits = data;
+        assets = [];
+      }else if(data && typeof data === 'object'){
+        credits = data.credits || [];
+        assets = data.assets || [];
+      }else{
+        throw new Error('Format de fichier invalide.');
+      }
       saveCredits();
       render();
       hideBanner();
@@ -498,6 +671,64 @@ function totalRepaid(credit){
   return credit.remboursements.reduce((s,r)=>s+r.montant,0);
 }
 
+// Nombre de jours entre deux dates ISO selon la convention bancaire "30/360"
+// (chaque mois compte pour 30 jours, chaque année pour 360) : c'est la méthode
+// utilisée par les tableaux d'amortissement bancaires classiques.
+function days360Between(dateStr1, dateStr2){
+  const d1 = new Date(dateStr1 + 'T00:00:00');
+  const d2 = new Date(dateStr2 + 'T00:00:00');
+  let day1 = d1.getDate(), day2 = d2.getDate();
+  if(day1 === 31) day1 = 30;
+  if(day2 === 31 && day1 === 30) day2 = 30;
+  return (d2.getFullYear() - d1.getFullYear()) * 360
+       + (d2.getMonth() - d1.getMonth()) * 30
+       + (day2 - day1);
+}
+
+// Calcule l'état d'un crédit (capital restant, intérêts payés...) à une date donnée.
+// asOfDate = null -> prend en compte tous les remboursements enregistrés.
+function creditStatusAt(credit, asOfDate){
+  const relevant = asOfDate ? credit.remboursements.filter(r => r.date <= asOfDate) : credit.remboursements;
+  const totalPaid = relevant.reduce((s,r)=> s + r.montant, 0);
+
+  if(credit.calcMode === 'amortissement' && credit.tauxAnnuel){
+    const ref = credit.capitalReference;
+    const hasRef = ref && ref.date && ref.montant != null;
+
+    let startBalance = hasRef ? ref.montant : credit.montant;
+    let startDate = hasRef ? ref.date : (credit.dateDebut || null);
+    let repaymentsToProcess = hasRef ? relevant.filter(r => r.date > ref.date) : relevant;
+
+    const sorted = [...repaymentsToProcess].sort((a,b)=> a.date.localeCompare(b.date));
+    let balance = startBalance;
+    let lastDate = startDate || (sorted[0] ? sorted[0].date : null);
+    let interestPaid = 0;
+    let insurancePaid = 0;
+    const assurance = credit.assuranceMensuelle || 0;
+    sorted.forEach(r => {
+      const days360 = lastDate ? Math.max(0, days360Between(lastDate, r.date)) : 0;
+      const dailyRate = (credit.tauxAnnuel / 100) / 360; // convention bancaire "30/360"
+      const interest = balance * dailyRate * days360;
+      const netPayment = r.montant - assurance;
+      const capitalPortion = netPayment - interest;
+      balance -= capitalPortion;
+      interestPaid += interest;
+      insurancePaid += assurance;
+      lastDate = r.date;
+    });
+    const remaining = Math.max(0, balance);
+    const capitalRepaid = credit.montant - remaining;
+    const pctRepaid = credit.montant > 0 ? Math.min(100, (capitalRepaid / credit.montant) * 100) : 0;
+    return { totalPaid, capitalRepaid, interestPaid, insurancePaid, remaining, pctRepaid };
+  }else{
+    const remaining = Math.max(0, credit.montant - totalPaid);
+    const capitalRepaid = Math.min(totalPaid, credit.montant);
+    const pctRepaid = credit.montant > 0 ? Math.min(100, (capitalRepaid / credit.montant) * 100) : 0;
+    return { totalPaid, capitalRepaid, interestPaid: 0, insurancePaid: 0, remaining, pctRepaid };
+  }
+}
+function creditStatus(credit){ return creditStatusAt(credit, null); }
+
 function gaugeSVG(pctRaw){
   const pct = Math.min(100, pctRaw);
   const r = 32, c = 2*Math.PI*r;
@@ -510,6 +741,130 @@ function gaugeSVG(pctRaw){
   </svg>`;
 }
 
+function totalDetteRestante(){
+  return credits.reduce((s,c)=> s + creditStatus(c).remaining, 0);
+}
+
+function netValueCredit(credit){
+  const value = credit.valeurEstimee || 0;
+  const remaining = creditStatus(credit).remaining;
+  return value - remaining;
+}
+
+function buildTimeline(){
+  const allDates = new Set();
+  credits.forEach(c => c.remboursements.forEach(r => allDates.add(r.date)));
+  const dates = Array.from(allDates).sort();
+  if(dates.length === 0) return [];
+  const todayISO = new Date().toISOString().slice(0,10);
+  if(!dates.includes(todayISO)) dates.push(todayISO);
+  const totalAssets = assets.reduce((s,a)=> s + (a.valeur||0), 0);
+  return dates.map(date => {
+    let net = totalAssets;
+    credits.forEach(c => {
+      const remaining = creditStatusAt(c, date).remaining;
+      net += (c.valeurEstimee || 0) - remaining;
+    });
+    return { date, net };
+  });
+}
+
+function evolutionSVG(points){
+  if(points.length < 2){
+    return '<div class="empty-hist">Ajoute au moins un remboursement pour voir apparaître une courbe.</div>';
+  }
+  const w = 320, h = 150, pad = 8;
+  const times = points.map(p => new Date(p.date + 'T00:00:00').getTime());
+  const values = points.map(p => p.net);
+  const minT = Math.min(...times), maxT = Math.max(...times);
+  const minV = Math.min(...values), maxV = Math.max(...values);
+  const spanT = (maxT - minT) || 1;
+  const spanV = (maxV - minV) || 1;
+  const x = t => pad + ((t - minT) / spanT) * (w - pad*2);
+  const y = v => (h - pad) - ((v - minV) / spanV) * (h - pad*2);
+  const linePts = points.map((p,i) => `${x(times[i])},${y(values[i])}`).join(' ');
+  const areaPts = `${x(times[0])},${h-pad} ${linePts} ${x(times[times.length-1])},${h-pad}`;
+  const dots = points.map((p,i) => `<circle cx="${x(times[i])}" cy="${y(values[i])}" r="3" fill="var(--brass)" />`).join('');
+  const first = points[0], last = points[points.length-1];
+  return `
+    <svg viewBox="0 0 ${w} ${h}" width="100%" height="170" preserveAspectRatio="none">
+      <polygon points="${areaPts}" fill="rgba(201,160,108,0.15)" />
+      <polyline points="${linePts}" fill="none" stroke="var(--brass)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+      ${dots}
+    </svg>
+    <div class="evolution-caption">
+      <span>${fmtDate(first.date)} · ${fmtEUR(first.net)}</span>
+      <span>${fmtDate(last.date)} · ${fmtEUR(last.net)}</span>
+    </div>
+    <div class="evolution-note">Basée sur la valeur actuelle des biens et l'historique de remboursement.</div>
+  `;
+}
+
+function renderPatrimoine(){
+  const totalValeurBiens = credits.reduce((s,c)=> s + (c.valeurEstimee||0), 0);
+  const totalAutresActifs = assets.reduce((s,a)=> s + (a.valeur||0), 0);
+  const totalDette = totalDetteRestante();
+  const netTotal = totalValeurBiens + totalAutresActifs - totalDette;
+
+  document.getElementById('patrimoineTotalValue').textContent = fmtEUR(netTotal);
+
+  const missingValue = credits.some(c=> !c.valeurEstimee);
+  document.getElementById('patrimoineBreakdown').innerHTML = `
+    <div class="breakdown-row"><span>Biens immobiliers</span><b>${fmtEUR(totalValeurBiens)}</b></div>
+    <div class="breakdown-row"><span>Autres actifs</span><b>${fmtEUR(totalAutresActifs)}</b></div>
+    <div class="breakdown-row"><span>Dette restante</span><b>- ${fmtEUR(totalDette)}</b></div>
+    ${missingValue ? '<div class="evolution-note">Renseigne la valeur estimée de chaque bien (« Modifier ce crédit ») pour un calcul plus précis.</div>' : ''}
+  `;
+
+  const creditsListEl = document.getElementById('patrimoineCreditsList');
+  if(credits.length === 0){
+    creditsListEl.innerHTML = '<div class="empty-hist">Aucun crédit enregistré.</div>';
+  }else{
+    creditsListEl.innerHTML = credits.map(c => {
+      const status = creditStatus(c);
+      const net = (c.valeurEstimee || 0) - status.remaining;
+      return `
+        <div class="asset-credit-row">
+          <div class="asset-credit-top">
+            <span class="asset-credit-name">${c.name}</span>
+            <span class="asset-credit-net">${fmtEUR(net)}</span>
+          </div>
+          <div class="asset-credit-sub">
+            ${c.valeurEstimee ? ('Valeur estimée : ' + fmtEUR(c.valeurEstimee) + ' · ') : 'Valeur non renseignée · '}Reste dû (capital) : ${fmtEUR(status.remaining)}
+            ${c.calcMode==='amortissement' ? (' · Intérêts payés : ' + fmtEUR(status.interestPaid) + (status.insurancePaid ? ' · Assurance : ' + fmtEUR(status.insurancePaid) : '')) : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  const assetsListEl = document.getElementById('assetsList');
+  if(assets.length === 0){
+    assetsListEl.innerHTML = '<div class="empty-hist">Aucun autre actif ajouté.</div>';
+  }else{
+    assetsListEl.innerHTML = assets.map(a => `
+      <div class="asset-row">
+        <span class="asset-name">${a.nom}</span>
+        <span>
+          <span class="asset-value">${fmtEUR(a.valeur)}</span>
+          <button class="asset-del" data-delasset="${a.id}">Supprimer</button>
+        </span>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('evolutionChart').innerHTML = evolutionSVG(buildTimeline());
+
+  document.querySelectorAll('[data-delasset]').forEach(btn=>{
+    btn.onclick = () => {
+      const id = btn.getAttribute('data-delasset');
+      assets = assets.filter(a=>a.id!==id);
+      saveCredits();
+      renderPatrimoine();
+    };
+  });
+}
+
 function renderOverview(){
   const panel = document.getElementById('overviewPanel');
   const list = document.getElementById('overviewList');
@@ -520,10 +875,7 @@ function renderOverview(){
   panel.style.display = 'block';
 
   const totalEmprunte = credits.reduce((s,c)=> s + c.montant, 0);
-  const totalRestant = credits.reduce((s,c)=> {
-    const remaining = c.montant - totalRepaid(c);
-    return s + Math.max(0, remaining);
-  }, 0);
+  const totalRestant = totalDetteRestante();
 
   const totalsHTML = `
     <div class="overview-totals">
@@ -536,8 +888,8 @@ function renderOverview(){
   `;
 
   list.innerHTML = totalsHTML + credits.map(credit => {
-    const repaid = totalRepaid(credit);
-    const pctRaw = credit.montant > 0 ? (repaid/credit.montant)*100 : 0;
+    const status = creditStatus(credit);
+    const pctRaw = status.pctRepaid;
     const pctRepaid = Math.min(100, Math.round(pctRaw));
     const pctRemaining = Math.max(0, 100 - pctRepaid);
     return `
@@ -560,6 +912,7 @@ function renderOverview(){
 
 function render(){
   renderOverview();
+  renderPatrimoine();
 
   const list = document.getElementById('creditsList');
   const empty = document.getElementById('emptyState');
@@ -571,10 +924,10 @@ function render(){
   empty.style.display = 'none';
 
   list.innerHTML = credits.map(credit => {
-    const repaid = totalRepaid(credit);
-    const pctRaw = credit.montant > 0 ? (repaid/credit.montant)*100 : 0;
+    const status = creditStatus(credit);
+    const pctRaw = status.pctRepaid;
     const pctDisplay = Math.round(pctRaw);
-    const remaining = credit.montant - repaid;
+    const remaining = status.remaining;
 
     const sorted = [...credit.remboursements].sort((a,b)=> b.date.localeCompare(a.date));
     const visibleCount = historyVisible[credit.id] || HISTORY_PAGE;
@@ -600,8 +953,9 @@ function render(){
           <div class="credit-info">
             <p class="credit-name">${credit.name}</p>
             <div class="credit-amounts">
-              <b>${fmtEUR(repaid)}</b> remboursés sur ${fmtEUR(credit.montant)}<br>
-              Reste dû : ${fmtEUR(Math.max(0,remaining))}
+              <b>${fmtEUR(status.totalPaid)}</b> versés au total sur ${fmtEUR(credit.montant)}<br>
+              ${credit.calcMode==='amortissement' ? `Capital remboursé : ${fmtEUR(status.capitalRepaid)} · Intérêts payés : ${fmtEUR(status.interestPaid)}${status.insurancePaid ? ' · Assurance payée : ' + fmtEUR(status.insurancePaid) : ''}<br>` : ''}
+              Reste dû (capital) : ${fmtEUR(remaining)}
               ${credit.dateLimite ? `<div class="credit-deadline">Échéance : ${fmtDate(credit.dateLimite)}</div>` : ''}
             </div>
           </div>
@@ -635,6 +989,40 @@ function render(){
             <div class="field">
               <label>Montant emprunté (€)</label>
               <input type="number" id="editamount-${credit.id}" value="${credit.montant}" min="0" step="0.01">
+            </div>
+            <div class="field">
+              <label>Mode de calcul</label>
+              <select id="editcalcmode-${credit.id}" class="calc-mode-select" data-credit="${credit.id}">
+                <option value="simple" ${credit.calcMode!=='amortissement'?'selected':''}>Simple (capital uniquement)</option>
+                <option value="amortissement" ${credit.calcMode==='amortissement'?'selected':''}>Avec intérêts (taux + mensualités)</option>
+              </select>
+            </div>
+            <div class="field" id="edittauxwrap-${credit.id}" style="display:${credit.calcMode==='amortissement'?'block':'none'};">
+              <label>Taux d'intérêt annuel (%)</label>
+              <input type="number" id="edittaux-${credit.id}" value="${credit.tauxAnnuel || ''}" min="0" step="0.01">
+            </div>
+            <div class="field" id="editdatedebutwrap-${credit.id}" style="display:${credit.calcMode==='amortissement'?'block':'none'};">
+              <label>Date de départ du prêt</label>
+              <input type="date" id="editdatedebut-${credit.id}" value="${credit.dateDebut || ''}">
+            </div>
+            <div class="field" id="editinsurancewrap-${credit.id}" style="display:${credit.calcMode==='amortissement'?'block':'none'};">
+              <label>Assurance mensuelle (€) (optionnel)</label>
+              <input type="number" id="editinsurance-${credit.id}" value="${credit.assuranceMensuelle || ''}" min="0" step="0.01">
+            </div>
+            <div class="field" id="editrefwrap-${credit.id}" style="display:${credit.calcMode==='amortissement'?'block':'none'};">
+              <label>Recalage : capital restant dû connu (optionnel)</label>
+              <div class="field-row">
+                <div class="field">
+                  <input type="date" id="editrefdate-${credit.id}" value="${credit.capitalReference ? credit.capitalReference.date : ''}">
+                </div>
+                <div class="field">
+                  <input type="number" id="editrefmontant-${credit.id}" placeholder="Montant €" value="${credit.capitalReference ? credit.capitalReference.montant : ''}" min="0" step="0.01">
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Valeur estimée du bien (€) (optionnel)</label>
+              <input type="number" id="editvaleur-${credit.id}" value="${credit.valeurEstimee || ''}" min="0" step="0.01">
             </div>
             <div class="field">
               <label>Date limite de remboursement (optionnel)</label>
@@ -727,6 +1115,17 @@ function attachCardListeners(){
     };
   });
 
+  document.querySelectorAll('.calc-mode-select').forEach(sel=>{
+    sel.onchange = () => {
+      const id = sel.getAttribute('data-credit');
+      const show = sel.value === 'amortissement';
+      document.getElementById('edittauxwrap-'+id).style.display = show ? 'block' : 'none';
+      document.getElementById('editdatedebutwrap-'+id).style.display = show ? 'block' : 'none';
+      document.getElementById('editinsurancewrap-'+id).style.display = show ? 'block' : 'none';
+      document.getElementById('editrefwrap-'+id).style.display = show ? 'block' : 'none';
+    };
+  });
+
   document.querySelectorAll('[data-editcredit]').forEach(btn=>{
     btn.onclick = () => {
       const id = btn.getAttribute('data-editcredit');
@@ -747,11 +1146,26 @@ function attachCardListeners(){
       const id = btn.getAttribute('data-saveedit');
       const name = document.getElementById('editname-'+id).value.trim();
       const amount = parseFloat(document.getElementById('editamount-'+id).value);
+      const calcMode = document.getElementById('editcalcmode-'+id).value;
+      const tauxAnnuel = calcMode === 'amortissement' ? (parseFloat(document.getElementById('edittaux-'+id).value) || null) : null;
+      const dateDebut = calcMode === 'amortissement' ? (document.getElementById('editdatedebut-'+id).value || null) : null;
+      const assuranceMensuelle = calcMode === 'amortissement' ? (parseFloat(document.getElementById('editinsurance-'+id).value) || null) : null;
+      const refDate = calcMode === 'amortissement' ? (document.getElementById('editrefdate-'+id).value || null) : null;
+      const refMontantRaw = calcMode === 'amortissement' ? document.getElementById('editrefmontant-'+id).value : '';
+      const refMontant = refMontantRaw !== '' ? parseFloat(refMontantRaw) : null;
+      const capitalReference = (refDate && refMontant != null) ? { date: refDate, montant: refMontant } : null;
+      const valeurEstimee = parseFloat(document.getElementById('editvaleur-'+id).value) || null;
       const deadline = document.getElementById('editdeadline-'+id).value || null;
       if(!name || !amount || amount <= 0) return;
       const credit = credits.find(c=>c.id===id);
       credit.name = name;
       credit.montant = amount;
+      credit.calcMode = calcMode;
+      credit.tauxAnnuel = tauxAnnuel;
+      credit.dateDebut = dateDebut;
+      credit.assuranceMensuelle = assuranceMensuelle;
+      credit.capitalReference = capitalReference;
+      credit.valeurEstimee = valeurEstimee;
       credit.dateLimite = deadline;
       await saveCredits();
       render();
@@ -782,15 +1196,43 @@ document.getElementById('cancelAdd').onclick = () => {
   document.getElementById('newName').value = '';
   document.getElementById('newAmount').value = '';
 };
+document.getElementById('newCalcMode').onchange = (e) => {
+  const show = e.target.value === 'amortissement';
+  document.getElementById('newTauxWrap').style.display = show ? 'block' : 'none';
+  document.getElementById('newDateDebutWrap').style.display = show ? 'block' : 'none';
+  document.getElementById('newInsuranceWrap').style.display = show ? 'block' : 'none';
+  document.getElementById('newRefWrap').style.display = show ? 'block' : 'none';
+};
+
 document.getElementById('confirmAdd').onclick = async () => {
   const name = document.getElementById('newName').value.trim();
   const amount = parseFloat(document.getElementById('newAmount').value);
+  const calcMode = document.getElementById('newCalcMode').value;
+  const tauxAnnuel = calcMode === 'amortissement' ? (parseFloat(document.getElementById('newTaux').value) || null) : null;
+  const dateDebut = calcMode === 'amortissement' ? (document.getElementById('newDateDebut').value || null) : null;
+  const assuranceMensuelle = calcMode === 'amortissement' ? (parseFloat(document.getElementById('newInsurance').value) || null) : null;
+  const refDate = calcMode === 'amortissement' ? (document.getElementById('newRefDate').value || null) : null;
+  const refMontantRaw = calcMode === 'amortissement' ? document.getElementById('newRefMontant').value : '';
+  const refMontant = refMontantRaw !== '' ? parseFloat(refMontantRaw) : null;
+  const capitalReference = (refDate && refMontant != null) ? { date: refDate, montant: refMontant } : null;
+  const valeurEstimee = parseFloat(document.getElementById('newValeurEstimee').value) || null;
   const deadline = document.getElementById('newDeadline').value || null;
   if(!name || !amount || amount <= 0) return;
-  credits.push({ id: uid(), name, montant: amount, dateLimite: deadline, remboursements: [] });
+  credits.push({ id: uid(), name, montant: amount, calcMode, tauxAnnuel, dateDebut, assuranceMensuelle, capitalReference, valeurEstimee, dateLimite: deadline, remboursements: [] });
   await saveCredits();
   document.getElementById('newName').value = '';
   document.getElementById('newAmount').value = '';
+  document.getElementById('newCalcMode').value = 'simple';
+  document.getElementById('newTaux').value = '';
+  document.getElementById('newDateDebut').value = '';
+  document.getElementById('newInsurance').value = '';
+  document.getElementById('newRefDate').value = '';
+  document.getElementById('newRefMontant').value = '';
+  document.getElementById('newTauxWrap').style.display = 'none';
+  document.getElementById('newDateDebutWrap').style.display = 'none';
+  document.getElementById('newInsuranceWrap').style.display = 'none';
+  document.getElementById('newRefWrap').style.display = 'none';
+  document.getElementById('newValeurEstimee').value = '';
   document.getElementById('newDeadline').value = '';
   document.getElementById('addPanel').style.display = 'none';
   document.getElementById('showFormBtn').style.display = 'block';
@@ -803,6 +1245,39 @@ document.getElementById('importFile').onchange = (e) => {
   const file = e.target.files[0];
   if(file) importBackup(file);
   e.target.value = '';
+};
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const page = btn.getAttribute('data-page');
+    document.getElementById('pageCredits').style.display = page === 'credits' ? 'block' : 'none';
+    document.getElementById('pagePatrimoine').style.display = page === 'patrimoine' ? 'block' : 'none';
+  };
+});
+
+document.getElementById('showAssetFormBtn').onclick = () => {
+  document.getElementById('assetAddPanel').style.display = 'block';
+  document.getElementById('showAssetFormBtn').style.display = 'none';
+};
+document.getElementById('cancelAsset').onclick = () => {
+  document.getElementById('assetAddPanel').style.display = 'none';
+  document.getElementById('showAssetFormBtn').style.display = 'block';
+  document.getElementById('newAssetName').value = '';
+  document.getElementById('newAssetValue').value = '';
+};
+document.getElementById('confirmAsset').onclick = () => {
+  const nom = document.getElementById('newAssetName').value.trim();
+  const valeur = parseFloat(document.getElementById('newAssetValue').value);
+  if(!nom || !valeur || valeur <= 0) return;
+  assets.push({ id: uid(), nom, valeur });
+  saveCredits();
+  document.getElementById('newAssetName').value = '';
+  document.getElementById('newAssetValue').value = '';
+  document.getElementById('assetAddPanel').style.display = 'none';
+  document.getElementById('showAssetFormBtn').style.display = 'block';
+  renderPatrimoine();
 };
 
 loadCredits();
